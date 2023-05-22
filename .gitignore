@@ -139,3 +139,4 @@ datasets/
 .DS_Store
 *.DS_Store
 data/features/
+run.bat

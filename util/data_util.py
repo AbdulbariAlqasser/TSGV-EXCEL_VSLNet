@@ -41,11 +41,20 @@ def save_pickle(data, filename):
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_video_features(root, max_position_length):
+def load_video_features(root:str, max_position_length:int) -> dict[str, np.ndarray]:
+    """load all videos features and process them depend max position length
+
+    Args:
+        root (str): path of videos features.\n
+        max_position_length (int)
+
+    Returns:
+        dict[str, np.ndarray]: dictionary of video and its features 
+    """
     video_features = dict()
     filenames = glob.glob(os.path.join(root, "*.npy"))
     for filename in tqdm(filenames, total=len(filenames), desc="load video features"):
-        video_id = filename.split("/")[-1].split(".")[0]
+        video_id = filename.split("\\")[-1].split(".")[0]
         feature = np.load(filename)
         if max_position_length is None:
             video_features[video_id] = feature
@@ -55,7 +64,18 @@ def load_video_features(root, max_position_length):
     return video_features
 
 
-def visual_feature_sampling(visual_feature, max_num_clips):
+def visual_feature_sampling(visual_feature:np.ndarray, max_num_clips:int) -> np.ndarray:
+    """It returns the feature vector if its length is less or equal to the maximum number of features,\n
+        otherwise it divides the feature range into equal length windows\n
+        and take average features on every window.
+
+    Args:
+        visual_feature (np.ndarray): visual feature for one video shape(video_seq, video_dim).
+        max_num_clips (int): max number of features to be returned
+
+    Returns:
+        np.ndarray: visual feature after processing shape(max_num_clips, video_dim).
+    """
     num_clips = visual_feature.shape[0]
     if num_clips <= max_num_clips:
         return visual_feature
@@ -114,7 +134,18 @@ def index_to_time(start_index, end_index, num_units, duration):
     return start_time, end_time
 
 
-def pad_seq(sequences, pad_tok=None, max_length=None):
+def pad_seq(sequences:list[list[int]], pad_tok:int=None, max_length:int=None) -> tuple[list, list]:
+    """apply padding on list of sequence
+
+    Args:
+        sequences (list[list[int]]): sequences of list that need to padding.
+        pad_tok (int, optional): pad value. Defaults to None.
+        max_length (int, optional): Defaults to None.
+
+    Returns:
+        tuple[list, list]: first one is sequences after padding,
+            second is list of lengths sequences.
+    """
     if pad_tok is None:
         pad_tok = 0  # 0: "PAD" for words and chars, "PAD" for tags
     if max_length is None:
@@ -127,7 +158,18 @@ def pad_seq(sequences, pad_tok=None, max_length=None):
     return sequence_padded, sequence_length
 
 
-def pad_char_seq(sequences, max_length=None, max_length_2=None):
+def pad_char_seq(sequences:list[list[list[int]]], max_length:int=None, max_length_2:int=None) -> tuple[list, list]:
+    """apply padding on word level and char level.
+
+    Args:
+        sequences (list[list[list[int]]]): sequences of list from word contain chars.
+        max_length (int, optional): max of length to padding on word level. Defaults to None.
+        max_length_2 (int, optional): max of length to padding on char level. Defaults to None.
+
+    Returns:
+        tuple[list, list]: first one is sequences after padding on two level,
+            second is list of lengths sequences.
+    """
     sequence_padded, sequence_length = [], []
     if max_length is None:
         max_length = max(map(lambda x: len(x), sequences))
@@ -142,7 +184,17 @@ def pad_char_seq(sequences, max_length=None, max_length_2=None):
     return sequence_padded, sequence_length
 
 
-def pad_video_seq(sequences, max_length=None):
+def pad_video_seq(sequences:list[np.ndarray], max_length:int=None) -> tuple[list, list]:
+    """apply padding on video feature on rows level.
+
+    Args:
+        sequences (list[np.ndarray]): sequences of ndarray represent video feature shape(video_seq, video_dimension)
+        max_length (int, optional): Defaults to None.
+
+    Returns:
+        tuple[list, list]: first one is sequences after padding on rows level,
+            second is list of lengths sequences befor padding.
+    """
     if max_length is None:
         max_length = max([vfeat.shape[0] for vfeat in sequences])
     feature_length = sequences[0].shape[1]

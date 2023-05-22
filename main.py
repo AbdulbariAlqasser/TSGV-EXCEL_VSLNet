@@ -16,7 +16,7 @@ if tf.__version__.startswith('2'):
 parser = argparse.ArgumentParser()
 # data parameters
 parser.add_argument('--save_dir', type=str, default='datasets', help='path to save processed dataset')
-parser.add_argument('--task', type=str, default='charades', help='target task')
+parser.add_argument('--task', type=str, default='tacos', help='target task')
 parser.add_argument('--fv', type=str, default='new', help='[new | org] for visual features')
 parser.add_argument('--max_pos_len', type=int, default=128, help='maximal position sequence length allowed')
 # model parameters

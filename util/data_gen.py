@@ -126,7 +126,15 @@ class TACoSProcessor:
         return train_set, val_set, test_set
 
 
-def load_glove(glove_path):
+def load_glove(glove_path:str) -> set[str]:
+    """read the path of Glove model and take only word that length is 300
+
+    Args:
+        glove_path (str): path of Glove model
+
+    Returns:
+        set: unique words, length of word is 300
+    """
     vocab = list()
     with codecs.open(glove_path, mode="r", encoding="utf-8") as f:
         for line in tqdm(f, total=2196018, desc="load glove vocabulary"):
@@ -138,13 +146,22 @@ def load_glove(glove_path):
     return set(vocab)
 
 
-def filter_glove_embedding(word_dict, glove_path):
+def filter_glove_embedding(word_dict: dict[str, int], glove_path:str) -> np.ndarray:
+    """create 2-d array in where each line is the embedding vector of the word
+
+    Args:
+        word_dict (dict): (word and its index) the words are sorted by their frequency in the data descending order
+        glove_path (str): path of Glove model
+
+    Returns:
+        np.ndarray: 2-d array (shape = length of words, 300)
+    """
     vectors = np.zeros(shape=[len(word_dict), 300], dtype=np.float32)
     with codecs.open(glove_path, mode="r", encoding="utf-8") as f:
         for line in tqdm(f, total=2196018, desc="load glove embeddings"):
             line = line.lstrip().rstrip().split(" ")
             if len(line) == 2 or len(line) != 301:
-                continue
+                 continue
             word = line[0]
             if word in word_dict:
                 vector = [float(x) for x in line[1:]]
@@ -153,12 +170,30 @@ def filter_glove_embedding(word_dict, glove_path):
     return np.asarray(vectors)
 
 
-def vocab_emb_gen(datasets, emb_path):
+def vocab_emb_gen(datasets:list[list[dict]], emb_path:str)-> tuple[dict[str, int], dict[str, int], np.ndarray]:
+    """extract words from data and return words and characters and 2-d array every line is word vector embedding 
+
+    Args:
+        datasets (list): available data: [train, val, test] OR [train, test]
+        emb_path (str): pre train embedding model path
+
+    Returns:
+        dict[str, int]: word and its index.\n
+        dict[str, int]: char and its index.\n
+        np.ndarray: 2-d array representation of embedding words.
+    """
     # generate word dict and vectors
     emb_vocab = load_glove(emb_path)
     word_counter, char_counter = Counter(), Counter()
     for data in datasets:
+        """
+            data is list of sample every sample (dict):
+                sample_id, video_id, start_time, end_time, duration, words(sentence is list of word) 
+        """
         for record in data:
+            """
+                record is sample
+            """ 
             for word in record['words']:
                 word_counter[word] += 1
                 for char in list(word):
@@ -167,6 +202,8 @@ def vocab_emb_gen(datasets, emb_path):
     for word, _ in word_counter.most_common():
         if word in emb_vocab:
             word_vocab.append(word)
+    # word_vocab = [word for word, _ in word_counter.most_common() if word in emb_vocab]
+    
     tmp_word_dict = dict([(word, index) for index, word in enumerate(word_vocab)])
     vectors = filter_glove_embedding(tmp_word_dict, emb_path)
     word_vocab = [PAD, UNK] + word_vocab
@@ -177,7 +214,23 @@ def vocab_emb_gen(datasets, emb_path):
     return word_dict, char_dict, vectors
 
 
-def dataset_gen(data, vfeat_lens, word_dict, char_dict, max_pos_len, scope):
+def dataset_gen(
+        data:list[dict], vfeat_lens:dict[str, int],
+        word_dict:dict[str, int], char_dict:dict[str, int],
+        max_pos_len:int, scope:str)->list[dict]:
+    """add some item to dataset like: star_index, end_index, words_ids:list[int], chars_ids:list[list[int]] for every sample
+
+    Args:
+        data (list[dict]): train or validation or test, list of samples
+        vfeat_lens (dict[str, int]): video and its length (after processing depending on max_pos_len) 
+        word_dict (dict[str, int]): word and its index
+        char_dict (dict[str, int]): char and its index
+        max_pos_len (int): max position length of feature
+        scope (str): "train" or "valdition" or "test", for print
+
+    Returns:
+        list[dict]: data with more variable
+    """
     dataset = list()
     for record in tqdm(data, total=len(data), desc='process {} data'.format(scope)):
         vid = record['vid']
@@ -198,7 +251,21 @@ def dataset_gen(data, vfeat_lens, word_dict, char_dict, max_pos_len, scope):
     return dataset
 
 
-def gen_or_load_dataset(configs):
+def gen_or_load_dataset(configs:dict) -> dict:
+    """load preprocessing dataset or load and processing dataset
+
+    Args:
+        configs (dict)
+
+    Raises:
+        ValueError: if task not defined
+
+    Returns:
+        dict: dataset (train dataset, val dataset, test dataset,\n
+                word dict, char dict, words embedding vector,\n 
+                number sample in train, number sample in valdition ,number sample in test,\n
+                number of words in dataset, number of chars in dataset)
+    """
     if not os.path.exists(configs.save_dir):
         os.makedirs(configs.save_dir)
     data_dir = os.path.join('data', 'dataset', configs.task)

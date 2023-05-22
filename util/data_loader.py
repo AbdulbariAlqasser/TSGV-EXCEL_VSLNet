@@ -1,3 +1,4 @@
+from argparse import Namespace
 import math
 import random
 import numpy as np
@@ -5,7 +6,7 @@ from util.data_util import pad_seq, pad_char_seq, pad_video_seq
 
 
 class TrainLoader:
-    def __init__(self, dataset, visual_features, configs):
+    def __init__(self, dataset:list[dict], visual_features:dict[str, np.ndarray], configs:Namespace):
         super(TrainLoader, self).__init__()
         self.dataset = dataset
         self.visual_feats = visual_features

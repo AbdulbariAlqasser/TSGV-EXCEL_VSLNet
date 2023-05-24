@@ -78,7 +78,16 @@ if configs.mode.lower() == 'train':
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     eval_period = num_train_batches // 2
-    save_json(vars(configs), os.path.join(model_dir, 'configs.json'), sort_keys=True, save_pretty=True)
+
+    # Find out if the configs of the last checkpoint have not changed
+    is_change_configs = True
+    # if exists config file and current config equals last config
+    if os.path.exists(os.path.join(model_dir, 'configs.json')) and\
+        load_json(os.path.join(model_dir, "configs.json")) == vars(configs):
+            is_change_configs = False
+    else:
+        save_json(vars(configs), os.path.join(model_dir, 'configs.json'), sort_keys=True, save_pretty=True)
+
     with tf.Graph().as_default() as graph:
         model = VSLNet(configs, graph=graph, vectors=dataset['word_vector'])
         sess_config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
@@ -87,6 +96,9 @@ if configs.mode.lower() == 'train':
             saver = tf.train.Saver(max_to_keep=3)
             writer = tf.summary.FileWriter(log_dir)
             sess.run(tf.global_variables_initializer())
+            if not is_change_configs:
+                print("restore checkpoint ...")
+                saver.restore(sess, tf.train.latest_checkpoint(model_dir))
             best_r1i7 = -1.0
             score_writer = open(os.path.join(model_dir, "eval_results.txt"), mode="w", encoding="utf-8")
             for epoch in range(configs.epochs):
@@ -96,6 +108,7 @@ if configs.mode.lower() == 'train':
                     feed_dict = get_feed_dict(data, model, drop_rate=configs.drop_rate)
                     _, loss, h_loss, global_step = sess.run([model.train_op, model.loss, model.highlight_loss,
                                                              model.global_step], feed_dict=feed_dict)
+                    global_step += 1
                     if global_step % configs.period == 0:
                         write_tf_summary(writer, [("train/loss", loss), ("train/highlight_loss", h_loss)], global_step)
                     # evaluate

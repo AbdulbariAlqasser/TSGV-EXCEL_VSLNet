@@ -140,4 +140,4 @@ datasets/
 *.DS_Store
 data/features/
 run.bat
-datasets_tf2
+datasets_tf2/*

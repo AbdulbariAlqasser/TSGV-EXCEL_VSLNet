@@ -81,9 +81,8 @@ if configs.mode.lower() == 'train':
 
     # Find out if the configs of the last checkpoint have not changed
     is_change_configs = True
-    # if exists config file and current config equals last config
-    if os.path.exists(os.path.join(model_dir, 'configs.json')) and\
-        load_json(os.path.join(model_dir, "configs.json")) == vars(configs):
+    # if exists config file
+    if os.path.exists(os.path.join(model_dir, 'configs.json')):
             is_change_configs = False
     else:
         save_json(vars(configs), os.path.join(model_dir, 'configs.json'), sort_keys=True, save_pretty=True)

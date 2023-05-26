@@ -157,12 +157,8 @@ def filter_glove_embedding(word_dict: dict[str, int], glove_path:str) -> np.ndar
         np.ndarray: 2-d array (shape = length of words, 300)
     """
     vectors = np.zeros(shape=[len(word_dict), 300], dtype=np.float32)
-    index = -1
     with codecs.open(glove_path, mode="r", encoding="utf-8") as f:
         for line in tqdm(f, total=2196018, desc="load glove embeddings"):
-            index += 1
-            if index <= 1:
-                continue
             line = line.lstrip().rstrip().split(" ")
             if len(line) == 2 or len(line) != 301:
                  continue
@@ -206,14 +202,11 @@ def vocab_emb_gen(datasets:list[list[dict]], emb_path:str)-> tuple[dict[str, int
     for word, _ in word_counter.most_common():
         if word in emb_vocab:
             word_vocab.append(word)
-    # word_vocab = [word for word, _ in word_counter.most_common() if word in emb_vocab]
-    
-    # tmp_word_dict = dict([(word, index) for index, word in enumerate(word_vocab)])
-    # vectors = filter_glove_embedding(tmp_word_dict, emb_path)
+            
+    tmp_word_dict = dict([(word, index) for index, word in enumerate(word_vocab)])
+    vectors = filter_glove_embedding(tmp_word_dict, emb_path)
     word_vocab = [PAD, UNK] + word_vocab
     word_dict = dict([(word, idx) for idx, word in enumerate(word_vocab)])
-    vectors = filter_glove_embedding(word_dict, emb_path)
-
     # generate character dict
     char_vocab = [PAD, UNK] + [char for char, count in char_counter.most_common() if count >= 5]
     char_dict = dict([(char, idx) for idx, char in enumerate(char_vocab)])

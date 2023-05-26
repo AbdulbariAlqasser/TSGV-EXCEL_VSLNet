@@ -115,7 +115,7 @@ if configs.mode.lower() == 'train':
                     if global_step % eval_period == 0 or global_step % num_train_batches == 0:
                         r1i3, r1i5, r1i7, mi, value_pairs, score_str = eval_test(
                             sess=sess, model=model, data_loader=test_loader, epoch=epoch + 1, global_step=global_step,
-                            mode="test")
+                            mode="val")
                         print('\nEpoch: %2d | Step: %5d | r1i3: %.2f | r1i5: %.2f | r1i7: %.2f | mIoU: %.2f' % (
                             epoch + 1, global_step, r1i3, r1i5, r1i7, mi), flush=True)
                         write_tf_summary(writer, value_pairs, global_step)

@@ -6,7 +6,7 @@ from model.VSLNet import VSLNet
 from util.data_gen import gen_or_load_dataset
 from util.data_util import load_video_features, save_json, load_json
 from util.data_loader import TrainLoader, TestLoader
-from util.runner_utils import set_tf_config, get_feed_dict, write_tf_summary, eval_test
+from util.runner_utils import get_epoch_last_checkpoint, set_tf_config, get_feed_dict, write_tf_summary, eval_test
 
 if tf.__version__.startswith('2'):
     tf = tf.compat.v1
@@ -34,7 +34,7 @@ parser.add_argument("--gpu_idx", type=str, default="0", help="GPU index")
 parser.add_argument("--seed", type=int, default=12345, help="random seed")
 parser.add_argument("--mode", type=str, default="train", help="[train | test]")
 parser.add_argument("--epochs", type=int, default=100, help="number of epochs")
-parser.add_argument("--batch_size", type=int, default=16, help="batch size")
+parser.add_argument("--batch_size", type=int, default=64, help="batch size")
 parser.add_argument("--num_train_steps", type=int, default=None, help="number of training steps")
 parser.add_argument("--init_lr", type=float, default=0.0001, help="initial learning rate")
 parser.add_argument("--clip_norm", type=float, default=1.0, help="gradient clip norm")
@@ -79,13 +79,7 @@ if configs.mode.lower() == 'train':
         os.makedirs(log_dir)
     eval_period = num_train_batches // 2
 
-    # Find out if the configs of the last checkpoint have not changed
-    is_change_configs = True
-    # if exists config file
-    if os.path.exists(os.path.join(model_dir, 'configs.json')):
-            is_change_configs = False
-    else:
-        save_json(vars(configs), os.path.join(model_dir, 'configs.json'), sort_keys=True, save_pretty=True)
+    save_json(vars(configs), os.path.join(model_dir, 'configs.json'), sort_keys=True, save_pretty=True)
 
     with tf.Graph().as_default() as graph:
         model = VSLNet(configs, graph=graph, vectors=dataset['word_vector'])
@@ -95,12 +89,16 @@ if configs.mode.lower() == 'train':
             saver = tf.train.Saver(max_to_keep=3)
             writer = tf.summary.FileWriter(log_dir)
             sess.run(tf.global_variables_initializer())
-            if not is_change_configs:
+
+            last_epoch = 0
+            if os.path.exists(os.path.join(model_dir, "checkpoint")):
                 print("restore checkpoint ...")
                 saver.restore(sess, tf.train.latest_checkpoint(model_dir))
+                last_epoch = get_epoch_last_checkpoint(os.path.join(model_dir, "eval_results.txt"))
+
             best_r1i7 = -1.0
-            score_writer = open(os.path.join(model_dir, "eval_results.txt"), mode="w", encoding="utf-8")
-            for epoch in range(configs.epochs):
+            score_writer = open(os.path.join(model_dir, "eval_results.txt"), mode="a", encoding="utf-8")
+            for epoch in range(last_epoch, configs.epochs):
                 for data in tqdm(train_loader.batch_iter(), total=num_train_batches, desc='Epoch %3d / 3%d' % (
                         epoch + 1, configs.epochs)):
                     # run the model

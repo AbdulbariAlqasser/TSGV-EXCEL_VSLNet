@@ -80,3 +80,9 @@ def eval_test(sess, model, data_loader:TestLoader, epoch=None, global_step=None,
     score_str += "Rank@1, IoU=0.7: {:.2f}\t".format(r1i7)
     score_str += "mean IoU: {:.2f}\n".format(mi)
     return r1i3, r1i5, r1i7, mi, value_pairs, score_str
+
+def get_epoch_last_checkpoint(path:str) -> int:
+    a = 0
+    with open(path, 'r') as f:
+        a = int(f.readlines()[-2].split(',')[0].split(" ")[1])
+    return a

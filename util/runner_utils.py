@@ -1,4 +1,5 @@
 import os
+import re
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
@@ -81,8 +82,14 @@ def eval_test(sess, model, data_loader:TestLoader, epoch=None, global_step=None,
     score_str += "mean IoU: {:.2f}\n".format(mi)
     return r1i3, r1i5, r1i7, mi, value_pairs, score_str
 
-def get_epoch_last_checkpoint(path:str) -> int:
-    a = 0
-    with open(path, 'r') as f:
-        a = int(f.readlines()[-2].split(',')[0].split(" ")[1])
-    return a
+def get_epoch_last_checkpoint(path_result_file:str, path_checkpoint_file:str) -> int:
+    from re import findall
+    epoch = 0
+    with open(path_checkpoint_file, 'r') as f_check:
+        step_best = int(findall(r"\d+", f_check.readline())[-1])
+        with open(path_result_file, 'r') as f:
+            for line in reversed(f.readlines()):
+                if not line.startswith("Epoch"): continue
+                epoch, step = findall(r"\d+", line)
+                if int(step) == step_best: break
+    return int(epoch)

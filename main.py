@@ -34,7 +34,7 @@ parser.add_argument("--gpu_idx", type=str, default="0", help="GPU index")
 parser.add_argument("--seed", type=int, default=12345, help="random seed")
 parser.add_argument("--mode", type=str, default="train", help="[train | test]")
 parser.add_argument("--epochs", type=int, default=100, help="number of epochs")
-parser.add_argument("--batch_size", type=int, default=64, help="batch size")
+parser.add_argument("--batch_size", type=int, default=32, help="batch size")
 parser.add_argument("--num_train_steps", type=int, default=None, help="number of training steps")
 parser.add_argument("--init_lr", type=float, default=0.0001, help="initial learning rate")
 parser.add_argument("--clip_norm", type=float, default=1.0, help="gradient clip norm")
@@ -44,6 +44,7 @@ parser.add_argument("--period", type=int, default=100, help="training loss print
 parser.add_argument('--model_dir', type=str, default='ckpt', help='path to save trained model weights')
 parser.add_argument('--model_name', type=str, default='vslnet', help='model name')
 parser.add_argument('--suffix', type=str, default=None, help='set to the last `_xxx` in ckpt repo to eval results')
+parser.add_argument('--followup_train', type=bool, default=True, help='follow-up training from the last check point')
 configs = parser.parse_args()
 
 # set tensorflow configs
@@ -91,13 +92,15 @@ if configs.mode.lower() == 'train':
             sess.run(tf.global_variables_initializer())
 
             last_epoch = 0
-            if os.path.exists(os.path.join(model_dir, "checkpoint")):
+            mode_open = "w"
+            if configs.followup_train and os.path.exists(os.path.join(model_dir, "checkpoint")):
                 print("restore checkpoint ...")
+                mode_open = 'a'
                 saver.restore(sess, tf.train.latest_checkpoint(model_dir))
-                last_epoch = get_epoch_last_checkpoint(os.path.join(model_dir, "eval_results.txt"))
+                last_epoch = get_epoch_last_checkpoint(os.path.join(model_dir, "eval_results.txt"), os.path.join(model_dir, "checkpoint"))
 
             best_r1i7 = -1.0
-            score_writer = open(os.path.join(model_dir, "eval_results.txt"), mode="a", encoding="utf-8")
+            score_writer = open(os.path.join(model_dir, "eval_results.txt"), mode=mode_open, encoding="utf-8")
             for epoch in range(last_epoch, configs.epochs):
                 for data in tqdm(train_loader.batch_iter(), total=num_train_batches, desc='Epoch %3d / 3%d' % (
                         epoch + 1, configs.epochs)):

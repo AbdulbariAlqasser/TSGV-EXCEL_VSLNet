@@ -202,8 +202,7 @@ def vocab_emb_gen(datasets:list[list[dict]], emb_path:str)-> tuple[dict[str, int
     for word, _ in word_counter.most_common():
         if word in emb_vocab:
             word_vocab.append(word)
-    # word_vocab = [word for word, _ in word_counter.most_common() if word in emb_vocab]
-    
+            
     tmp_word_dict = dict([(word, index) for index, word in enumerate(word_vocab)])
     vectors = filter_glove_embedding(tmp_word_dict, emb_path)
     word_vocab = [PAD, UNK] + word_vocab

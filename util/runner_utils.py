@@ -1,7 +1,9 @@
 import os
+import re
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
+from util.data_loader import TestLoader
 from util.data_util import index_to_time
 
 if tf.__version__.startswith('2'):
@@ -57,7 +59,7 @@ def get_feed_dict(batch_data, model, drop_rate=None, mode='train'):
         return raw_data, feed_dict
 
 
-def eval_test(sess, model, data_loader, epoch=None, global_step=None, mode="test"):
+def eval_test(sess, model, data_loader:TestLoader, epoch=None, global_step=None, mode="test"):
     ious = list()
     for data in tqdm(data_loader.test_iter(mode), total=data_loader.num_batches(mode), desc="evaluate {}".format(mode)):
         raw_data, feed_dict = get_feed_dict(data, model, mode=mode)
@@ -79,3 +81,15 @@ def eval_test(sess, model, data_loader, epoch=None, global_step=None, mode="test
     score_str += "Rank@1, IoU=0.7: {:.2f}\t".format(r1i7)
     score_str += "mean IoU: {:.2f}\n".format(mi)
     return r1i3, r1i5, r1i7, mi, value_pairs, score_str
+
+def get_epoch_last_checkpoint(path_result_file:str, path_checkpoint_file:str) -> int:
+    from re import findall
+    epoch = 0
+    with open(path_checkpoint_file, 'r') as f_check:
+        step_best = int(findall(r"\d+", f_check.readline())[-1])
+        with open(path_result_file, 'r') as f:
+            for line in reversed(f.readlines()):
+                if not line.startswith("Epoch"): continue
+                epoch, step = findall(r"\d+", line)
+                if int(step) == step_best: break
+    return int(epoch)

@@ -1,4 +1,5 @@
 import os
+import platform
 import argparse
 import tensorflow as tf
 from tqdm import tqdm
@@ -108,7 +109,7 @@ if configs.mode.lower() == 'train':
                     feed_dict = get_feed_dict(data, model, drop_rate=configs.drop_rate)
                     _, loss, h_loss, global_step = sess.run([model.train_op, model.loss, model.highlight_loss,
                                                              model.global_step], feed_dict=feed_dict)
-                    global_step += 1
+                    if platform.system() == "Windows": global_step += 1
                     if global_step % configs.period == 0:
                         write_tf_summary(writer, [("train/loss", loss), ("train/highlight_loss", h_loss)], global_step)
                     # evaluate

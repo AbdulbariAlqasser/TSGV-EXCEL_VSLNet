@@ -250,12 +250,12 @@ def dataset_gen(
     return dataset
 
 
-def gen_or_load_dataset(configs:dict) -> dict:
+def gen_or_load_dataset(configs:dict, parent_path:str) -> dict:
     """load preprocessing dataset or load and processing dataset
 
     Args:
         configs (dict)
-
+        parent_path (str)
     Raises:
         ValueError: if task not defined
 
@@ -267,8 +267,8 @@ def gen_or_load_dataset(configs:dict) -> dict:
     """
     if not os.path.exists(configs.save_dir):
         os.makedirs(configs.save_dir)
-    data_dir = os.path.join('data', 'dataset', configs.task)
-    feature_dir = os.path.join('data', 'features', configs.task, configs.fv)
+    data_dir = os.path.join(parent_path, 'data', 'dataset', configs.task)
+    feature_dir = os.path.join(parent_path, 'data', 'features', configs.task, configs.fv)
     if configs.suffix is None:
         save_path = os.path.join(configs.save_dir, '_'.join([configs.task, configs.fv, str(configs.max_pos_len)]) +
                                  '.pkl')
@@ -279,7 +279,7 @@ def gen_or_load_dataset(configs:dict) -> dict:
         dataset = load_pickle(save_path)
         return dataset
     feat_len_path = os.path.join(feature_dir, 'feature_shapes.json')
-    emb_path = os.path.join('data', 'features', 'glove.840B.300d.txt')
+    emb_path = os.path.join(parent_path, 'data', 'features', 'glove.840B.300d.txt')
     # load video feature length
     vfeat_lens = load_json(feat_len_path)
     for vid, vfeat_len in vfeat_lens.items():

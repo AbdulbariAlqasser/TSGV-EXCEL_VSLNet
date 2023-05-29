@@ -55,11 +55,12 @@ set_tf_config(configs.seed, configs.gpu_idx)
 if tf.__version__.startswith('2'):
     configs.save_dir = 'datasets_tf2'  # avoid `ValueError: unsupported pickle protocol: 5`
     configs.model_dir = 'ckpt_tf2'
-dataset = gen_or_load_dataset(configs)
+parent_path = os.path.dirname(os.path.abspath(__file__))
+dataset = gen_or_load_dataset(configs, parent_path)
 configs.char_size = dataset['n_chars']
 
 # get train and test loader
-visual_features = load_video_features(os.path.join('data', 'features', configs.task, configs.fv), configs.max_pos_len)
+visual_features = load_video_features(os.path.join(parent_path, 'data', 'features', configs.task, configs.fv), configs.max_pos_len)
 train_loader = TrainLoader(dataset=dataset['train_set'], visual_features=visual_features, configs=configs)
 test_loader = TestLoader(datasets=dataset, visual_features=visual_features, configs=configs)
 configs.num_train_steps = train_loader.num_batches() * configs.epochs

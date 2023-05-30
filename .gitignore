@@ -135,9 +135,7 @@ ckpt/
 ckpt_t7/
 ckpt*/
 data/features/
-datasets/
 .DS_Store
 *.DS_Store
 data/features/
 run.bat
-datasets_tf2/

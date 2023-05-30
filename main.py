@@ -40,7 +40,7 @@ parser.add_argument("--init_lr", type=float, default=0.0001, help="initial learn
 parser.add_argument("--clip_norm", type=float, default=1.0, help="gradient clip norm")
 parser.add_argument("--warmup_proportion", type=float, default=0.0, help="warmup proportion")
 parser.add_argument("--extend", type=float, default=0.1, help="highlight region extension")
-parser.add_argument("--period", type=int, default=100, help="training loss print period")
+parser.add_argument("--period", type=int, default=0, help="training loss print period")
 parser.add_argument('--model_dir', type=str, default='ckpt', help='path to save trained model weights')
 parser.add_argument('--model_name', type=str, default='vslnet', help='model name')
 parser.add_argument('--suffix', type=str, default=None, help='set to the last `_xxx` in ckpt repo to eval results')
@@ -49,6 +49,7 @@ configs = parser.parse_args()
 
 # set tensorflow configs
 set_tf_config(configs.seed, configs.gpu_idx)
+if configs.period == 0: configs.period = configs.epochs
 
 # prepare or load dataset
 dataset = gen_or_load_dataset(configs)

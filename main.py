@@ -53,8 +53,8 @@ set_tf_config(configs.seed, configs.gpu_idx)
 
 # prepare or load dataset
 if tf.__version__.startswith('2'):
-    configs.save_dir = 'datasets_tf2'  # avoid `ValueError: unsupported pickle protocol: 5`
-    configs.model_dir = 'ckpt_tf2'
+    configs.save_dir = configs.save_dir + '_tf2'  # avoid `ValueError: unsupported pickle protocol: 5`
+    configs.model_dir = configs.model_dir + '_tf2'
 dataset = gen_or_load_dataset(configs)
 configs.char_size = dataset['n_chars']
 

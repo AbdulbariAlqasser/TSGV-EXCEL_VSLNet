@@ -255,7 +255,6 @@ def gen_or_load_dataset(configs:dict) -> dict:
 
     Args:
         configs (dict)
-
     Raises:
         ValueError: if task not defined
 

@@ -98,7 +98,7 @@ if configs.mode.lower() == 'train':
             best_r1i7 = -1.0
             score_writer = open(os.path.join(model_dir, "eval_results.txt"), mode=mode_open, encoding="utf-8")
             for epoch in range(last_epoch, configs.epochs):
-                for data in tqdm(train_loader.batch_iter(), total=num_train_batches, desc='Epoch %3d / 3%d' % (
+                for data in tqdm(train_loader.batch_iter(), total=num_train_batches, desc='Epoch %3d / %3d' % (
                         epoch + 1, configs.epochs)):
                     # run the model
                     feed_dict = get_feed_dict(data, model, drop_rate=configs.drop_rate)

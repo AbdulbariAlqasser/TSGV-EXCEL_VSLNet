@@ -1,5 +1,4 @@
 import os
-import platform
 import argparse
 import tensorflow as tf
 from tqdm import tqdm
@@ -52,9 +51,6 @@ configs = parser.parse_args()
 set_tf_config(configs.seed, configs.gpu_idx)
 
 # prepare or load dataset
-if tf.__version__.startswith('2'):
-    configs.save_dir = configs.save_dir + '_tf2'  # avoid `ValueError: unsupported pickle protocol: 5`
-    configs.model_dir = configs.model_dir + '_tf2'
 dataset = gen_or_load_dataset(configs)
 configs.char_size = dataset['n_chars']
 
@@ -79,7 +75,6 @@ if configs.mode.lower() == 'train':
         os.makedirs(model_dir)
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    eval_period = num_train_batches // 2
 
     save_json(vars(configs), os.path.join(model_dir, 'configs.json'), sort_keys=True, save_pretty=True)
 
@@ -109,11 +104,11 @@ if configs.mode.lower() == 'train':
                     feed_dict = get_feed_dict(data, model, drop_rate=configs.drop_rate)
                     _, loss, h_loss, global_step = sess.run([model.train_op, model.loss, model.highlight_loss,
                                                              model.global_step], feed_dict=feed_dict)
-                    if platform.system() == "Windows": global_step += 1
+                    global_step += 1
                     if global_step % configs.period == 0:
                         write_tf_summary(writer, [("train/loss", loss), ("train/highlight_loss", h_loss)], global_step)
                     # evaluate
-                    if global_step % eval_period == 0 or global_step % num_train_batches == 0:
+                    if global_step % num_train_batches == 0:
                         r1i3, r1i5, r1i7, mi, value_pairs, score_str = eval_test(
                             sess=sess, model=model, data_loader=test_loader, epoch=epoch + 1, global_step=global_step,
                             mode="val")

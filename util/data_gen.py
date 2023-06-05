@@ -1,3 +1,4 @@
+from concurrent.futures import process
 import os
 import codecs
 import numpy as np
@@ -212,6 +213,14 @@ def vocab_emb_gen(datasets:list[list[dict]], emb_path:str)-> tuple[dict[str, int
     char_dict = dict([(char, idx) for idx, char in enumerate(char_vocab)])
     return word_dict, char_dict, vectors
 
+def extract_list_ids(words, word_dict, char_dict, max_pos_len):
+    word_ids, char_ids = [], []
+    for word in words[0:max_pos_len]:
+        word_id = word_dict[word] if word in word_dict else word_dict[UNK]
+        char_id = [char_dict[char] if char in char_dict else char_dict[UNK] for char in word]
+        word_ids.append(word_id)
+        char_ids.append(char_id)
+    return word_ids, char_ids
 
 def dataset_gen(
         data:list[dict], vfeat_lens:dict[str, int],
@@ -236,12 +245,9 @@ def dataset_gen(
         if vid not in vfeat_lens:
             continue
         s_ind, e_ind, _ = time_to_index(record['s_time'], record['e_time'], vfeat_lens[vid], record['duration'])
-        word_ids, char_ids = [], []
-        for word in record['words'][0:max_pos_len]:
-            word_id = word_dict[word] if word in word_dict else word_dict[UNK]
-            char_id = [char_dict[char] if char in char_dict else char_dict[UNK] for char in word]
-            word_ids.append(word_id)
-            char_ids.append(char_id)
+        word_ids, char_ids = extract_list_ids(
+            record["words"], word_dict=word_dict, char_dict=char_dict, max_pos_len=max_pos_len
+            )
         result = {'sample_id': record['sample_id'], 'vid': record['vid'], 's_time': record['s_time'],
                   'e_time': record['e_time'], 'duration': record['duration'], 'words': record['words'],
                   's_ind': int(s_ind), 'e_ind': int(e_ind), 'v_len': vfeat_lens[vid], 'w_ids': word_ids,
@@ -249,6 +255,43 @@ def dataset_gen(
         dataset.append(result)
     return dataset
 
+
+def all_dataset_gen(data_list, vfeat_lens, word_dict, char_dict, max_pos_len):
+    data_scope = ['train', 'val', 'test']
+    if len(data_list) == 2: data_list.insert(1, None)
+    ls = []
+    for scope, data in zip(data_scope, data_list):
+        tmp = None if data is None else dataset_gen(data, vfeat_lens, word_dict, char_dict, max_pos_len, scope)
+        ls.append(tmp)
+    return ls
+
+def create_processor(task):
+    if task == 'charades':
+        return CharadesProcessor()
+    elif task == 'activitynet':
+        return ActivityNetProcessor()
+    elif task == 'tacos':
+        return TACoSProcessor()
+    raise ValueError('Unknown task {}!!!'.format(task))
+
+def prepare_paths(configs):
+    data_dir = os.path.join('data', 'dataset', configs.task)
+    feature_dir = os.path.join('data', 'features', configs.task, configs.fv)
+    if configs.suffix is None:
+        save_path = os.path.join(configs.save_dir, '_'.join([configs.task, configs.fv, str(configs.max_pos_len)]) +
+                                 '.pkl')
+    else:
+        save_path = os.path.join(configs.save_dir, '_'.join([configs.task, configs.fv, str(configs.max_pos_len),
+                                                             configs.suffix]) + '.pkl')
+    feat_len_path = os.path.join(feature_dir, 'feature_shapes.json')
+    emb_path = os.path.join('data', 'features', 'glove.840B.300d.txt')
+    return data_dir, feature_dir, save_path, feat_len_path, emb_path
+
+def prepare_feature_length(feature_length_path, max_length):
+    vfeat_lens = load_json(feature_length_path)
+    for vid, vfeat_len in vfeat_lens.items():
+        vfeat_lens[vid] = min(max_length, vfeat_len)
+    return vfeat_lens
 
 def gen_or_load_dataset(configs:dict) -> dict:
     """load preprocessing dataset or load and processing dataset
@@ -264,42 +307,24 @@ def gen_or_load_dataset(configs:dict) -> dict:
                 number sample in train, number sample in valdition ,number sample in test,\n
                 number of words in dataset, number of chars in dataset)
     """
-    if not os.path.exists(configs.save_dir):
-        os.makedirs(configs.save_dir)
-    data_dir = os.path.join('data', 'dataset', configs.task)
-    feature_dir = os.path.join('data', 'features', configs.task, configs.fv)
-    if configs.suffix is None:
-        save_path = os.path.join(configs.save_dir, '_'.join([configs.task, configs.fv, str(configs.max_pos_len)]) +
-                                 '.pkl')
-    else:
-        save_path = os.path.join(configs.save_dir, '_'.join([configs.task, configs.fv, str(configs.max_pos_len),
-                                                             configs.suffix]) + '.pkl')
-    if os.path.exists(save_path):
-        dataset = load_pickle(save_path)
-        return dataset
-    feat_len_path = os.path.join(feature_dir, 'feature_shapes.json')
-    emb_path = os.path.join('data', 'features', 'glove.840B.300d.txt')
+    
+    if not os.path.exists(configs.save_dir): os.makedirs(configs.save_dir)
+    
+    data_dir, feature_dir, save_path, feat_len_path, emb_path = prepare_paths(configs)
+    if os.path.exists(save_path): return load_pickle(save_path)
+
     # load video feature length
-    vfeat_lens = load_json(feat_len_path)
-    for vid, vfeat_len in vfeat_lens.items():
-        vfeat_lens[vid] = min(configs.max_pos_len, vfeat_len)
+    vfeat_lens = prepare_feature_length(feat_len_path, configs.max_pos_len)
+
     # load data
-    if configs.task == 'charades':
-        processor = CharadesProcessor()
-    elif configs.task == 'activitynet':
-        processor = ActivityNetProcessor()
-    elif configs.task == 'tacos':
-        processor = TACoSProcessor()
-    else:
-        raise ValueError('Unknown task {}!!!'.format(configs.task))
+    processor = create_processor(configs.task)
     train_data, val_data, test_data = processor.convert(data_dir)
+
     # generate dataset
     data_list = [train_data, test_data] if val_data is None else [train_data, val_data, test_data]
     word_dict, char_dict, vectors = vocab_emb_gen(data_list, emb_path)
-    train_set = dataset_gen(train_data, vfeat_lens, word_dict, char_dict, configs.max_pos_len, 'train')
-    val_set = None if val_data is None else dataset_gen(val_data, vfeat_lens, word_dict, char_dict,
-                                                        configs.max_pos_len, 'val')
-    test_set = dataset_gen(test_data, vfeat_lens, word_dict, char_dict, configs.max_pos_len, 'test')
+    train_set, val_set, test_set = all_dataset_gen(data_list, vfeat_lens, word_dict, char_dict, configs.max_pos_len)
+    
     # save dataset
     n_val = 0 if val_set is None else len(val_set)
     dataset = {'train_set': train_set, 'val_set': val_set, 'test_set': test_set, 'word_dict': word_dict,

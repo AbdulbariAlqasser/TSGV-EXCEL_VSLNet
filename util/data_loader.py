@@ -133,3 +133,36 @@ class TestLoader:
         vfeats = np.asarray(vfeats, dtype=np.float32)  # (batch_size, v_seq_len, v_dim)
         vfeat_lens = np.asarray(vfeat_lens, dtype=np.int32)  # (batch_size, )
         return vfeats, vfeat_lens, word_ids, char_ids
+
+class RealWorldTestLoader:
+    def __init__(self, dataset, visual_features, configs):
+        self.visual_feats = visual_features
+        self.dataset = dataset
+        self.batch_size = configs.batch_size
+
+    def num_batches(self):
+        return math.ceil(len(self.dataset) / self.batch_size)
+
+    def test_iter(self):
+        for index in range(0, len(self.dataset), self.batch_size):
+            batch_data = self.dataset[index:(index + self.batch_size)]
+            vfeats, vfeat_lens, word_ids, char_ids = self.process_batch(batch_data)
+            yield batch_data, vfeats, vfeat_lens, word_ids, char_ids
+
+    def process_batch(self, batch_data):
+        vfeats, word_ids, char_ids = [], [], []
+        for data in batch_data:
+            vfeats.append(self.visual_feats[data['vid']])
+            word_ids.append(data['w_ids'])
+            char_ids.append(data['c_ids'])
+        # process word ids
+        word_ids, _ = pad_seq(word_ids)
+        word_ids = np.asarray(word_ids, dtype=np.int32)  # (batch_size, w_seq_len)
+        # process char ids
+        char_ids, _ = pad_char_seq(char_ids)
+        char_ids = np.asarray(char_ids, dtype=np.int32)  # (batch_size, w_seq_len, c_seq_len)
+        # process video features
+        vfeats, vfeat_lens = pad_video_seq(vfeats)
+        vfeats = np.asarray(vfeats, dtype=np.float32)  # (batch_size, v_seq_len, v_dim)
+        vfeat_lens = np.asarray(vfeat_lens, dtype=np.int32)  # (batch_size, )
+        return vfeats, vfeat_lens, word_ids, char_ids

@@ -71,7 +71,6 @@ class TrainLoader:
                 h_labels[idx][st:(et + 1)] = 1
         return vfeats, vfeat_lens, word_ids, char_ids, s_labels, e_labels, h_labels
 
-
 class TestLoader:
     def __init__(self, datasets, visual_features, configs):
         self.visual_feats = visual_features

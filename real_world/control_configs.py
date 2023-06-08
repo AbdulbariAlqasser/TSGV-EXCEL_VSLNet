@@ -1,10 +1,10 @@
 import os
 from argparse import ArgumentParser
-from util.data_util import load_json, load_lines, load_pickle, time_to_index
+from util.data_util import load_json, load_pickle
 
-MODEL_DIR = "real_world\\require\\model"
-SAVE_PATH = "datasets\\tacos_new_128.pkl"
-
+MODEL_DIR = "real_world\\require\\vslnet_activitynet_new_128_rnn_stored1\\model"
+SAVE_PATH = "datasets\\activitynet_new_128_stored1.pkl"
+ 
 parser = ArgumentParser()
 pre_configs = load_json(os.path.join(MODEL_DIR, "configs.json"))
 parser.set_defaults(**pre_configs)

@@ -14,15 +14,17 @@ def predict(features_path, feature_shape_path, duration, query, video_name=None)
     visual_features = load_video_features(features_path, cf.MODEL_CONFIGS.max_pos_len)
     data_loader = RealWorldTestLoader(dataset=samples, visual_features=visual_features, configs=cf.MODEL_CONFIGS)
     results = run_model(data_loader)
+    print(samples)
+    print(query)
     print(results)
 
 
 if __name__ == '__main__':
     features_path = "C:\\Users\\ASUS\\Desktop\\final-project\\data-sample"
     feature_shape_path = "C:\\Users\\ASUS\\Desktop\\final-project\\data-sample\\feature_shapes.json"
-    duration = 1514 / 29.4
-    query = "She takes out fig"
-    predict(features_path, feature_shape_path, duration, query, "s22-d55")
+    duration = 7 * 60 + 6
+    query = "war between two armies"
+    predict(features_path, feature_shape_path, duration, query, "Melhim")
 """
     GOAL:
         sample: {'sample_id': record['sample_id'], 'vid': record['vid'], 's_time': record['s_time'],

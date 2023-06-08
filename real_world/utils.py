@@ -5,6 +5,7 @@ from util.data_gen import extract_list_ids, prepare_feature_length
 import tensorflow as tf
 from util.data_util import index_to_time
 from util.runner_utils import get_feed_dict
+from time import time
 
 if tf.__version__.startswith('2'):
     tf = tf.compat.v1
@@ -42,6 +43,7 @@ def run_model(data_loader):
             saver = tf.train.Saver()
             sess.run(tf.global_variables_initializer())
             saver.restore(sess, tf.train.latest_checkpoint(cf.MODEL_DIR))
+            start_exc = time()
             times_bound = []
             for data in data_loader.test_iter():
                 raw_data, feed_dict = get_feed_dict(data, model, mode="val")
@@ -49,4 +51,5 @@ def run_model(data_loader):
                 for record, start_index, end_index in zip(raw_data, start_indexes, end_indexes):
                     start_time, end_time = index_to_time(start_index, end_index, record["v_len"], record["duration"])
                     times_bound.append((start_time, end_time))
+            print("*"*20, "\n", time() - start_exc, "\n", "*"*20)
     return times_bound

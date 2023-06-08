@@ -1,4 +1,0 @@
-model_checkpoint_path: "vslnet_1540.ckpt"
-all_model_checkpoint_paths: "vslnet_1320.ckpt"
-all_model_checkpoint_paths: "vslnet_1360.ckpt"
-all_model_checkpoint_paths: "vslnet_1540.ckpt"

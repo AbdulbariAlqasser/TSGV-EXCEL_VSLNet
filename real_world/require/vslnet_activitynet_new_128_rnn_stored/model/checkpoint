@@ -1,0 +1,3 @@
+model_checkpoint_path: "vslnet_27.04.ckpt"
+all_model_checkpoint_paths: "vslnet_27.04.ckpt"
+all_model_checkpoint_paths: "vslnet_27.25.ckpt"

@@ -1,3 +1,8 @@
+# Developing the project and trying to solve all the challenges to transfer it to a practical open source product
+
+VSLNET architecture will be relied upon to build a product that searches for the query in a video and possibly in a relatively small set of videos
+
+
 # Span-based Localizing Network for Natural Language Video Localization
 
 This is implementation for the paper "Span-based Localizing Network for Natural Language Video 
